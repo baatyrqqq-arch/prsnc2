@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Presence Checker — Attendance</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%230f5c6e%22/%3E%3Cpath d=%22M16 33l11 11 22-25%22 fill=%22none%22 stroke=%22white%22 stroke-width=%226%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
+<style>
+:root{--bg:#eef2f4;--card:#fff;--ink:#14292f;--mute:#5b6f76;--line:#d5dee2;--brand:#0f5c6e;--on:#fff;--ok:#1b7a43;--okbg:#dff2e6;--late:#8a5a00;--latebg:#fdf0c9;--abs:#a3262a;--absbg:#fbe0e0}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1a1e;--card:#16262b;--ink:#e6eff2;--mute:#9bb0b7;--line:#2a3f46;--brand:#5cc3d9;--on:#06242b;--ok:#6fd597;--okbg:#173a27;--late:#f2c661;--latebg:#3d3113;--abs:#ff9a9d;--absbg:#431b1d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,"Segoe UI",Roboto,sans-serif}
+main{max-width:560px;margin:0 auto;padding:12px 16px 110px}
+h1{font-size:1.4rem;margin:8px 0 2px}h2{font-size:1.05rem;margin:0}p{margin:0}.mute{color:var(--mute);font-size:.9rem}
+.top{display:flex;justify-content:space-between;align-items:center;min-height:44px}
+.lang{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;min-height:40px;padding:0 12px;font-weight:700;cursor:pointer}
+.back{background:none;border:0;color:var(--brand);font:600 1rem inherit;padding:10px 4px;cursor:pointer}
+button,input{font-family:inherit}
+.btn{width:100%;min-height:52px;border-radius:10px;border:2px solid var(--brand);background:var(--brand);color:var(--on);font-weight:700;font-size:1.05rem;cursor:pointer}
+.btn.sec{background:transparent;color:var(--brand)}
+:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px}
+.lesson{display:block;width:100%;text-align:left;padding:14px;margin-top:10px;color:inherit;font-size:1rem}
+button.lesson{cursor:pointer}
+.lesson.off{opacity:.75}
+.lrow{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.st{padding:3px 10px;border-radius:999px;font-size:.8rem;font-weight:700;white-space:nowrap;border:1px solid var(--line);color:var(--mute)}
+.st.act{background:var(--okbg);color:var(--ok);border-color:var(--ok)}.st.sent{background:var(--latebg);color:var(--late);border-color:var(--late)}
+.chips{display:flex;gap:8px;margin:12px 0}
+.chip{flex:1;padding:8px;border-radius:10px;text-align:center;font-weight:700}.chip small{display:block;font-weight:400}
+.ok{background:var(--okbg);color:var(--ok)}.late{background:var(--latebg);color:var(--late)}.abs{background:var(--absbg);color:var(--abs)}
+.alert{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;background:var(--latebg);color:var(--late);border:1px solid var(--late);margin-bottom:12px}
+.alert button{min-height:44px;padding:0 14px;border-radius:8px;border:2px solid var(--late);background:transparent;color:var(--late);font-weight:700;cursor:pointer}
+.hint{padding:14px;margin-top:12px;border-left:4px solid var(--brand)}
+.hint ol{margin:8px 0 12px;padding-left:20px}.hint li{margin:2px 0}
+.hint button{min-height:44px;padding:0 16px;border-radius:8px;border:2px solid var(--brand);background:transparent;color:var(--brand);font-weight:700;cursor:pointer}
+.tools{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.search{width:100%;min-height:46px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0 12px;font-size:1rem}
+.filters{display:flex;gap:6px;overflow-x:auto}
+.f{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:600;cursor:pointer;white-space:nowrap}
+.f[aria-pressed=true]{background:var(--brand);color:var(--on);border-color:var(--brand)}
+.row{display:flex;align-items:center;width:100%;gap:10px;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;text-align:left;font-size:1rem;cursor:pointer;min-height:56px}
+.row:last-child{border-bottom:0}
+.empty{padding:20px;text-align:center}
+.av{width:36px;height:36px;border-radius:50%;background:var(--line);display:grid;place-items:center;font-weight:700;font-size:.8rem;flex:none}
+.grow{flex:1}.tag{padding:4px 10px;border-radius:999px;font-weight:700;font-size:.85rem;white-space:nowrap}
+.src{font-size:.85rem;color:var(--mute)}.src.t{color:var(--brand);font-weight:600}
+.sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:16px 16px 0 0;padding:18px 16px;max-height:88%;overflow:auto}
+.opt{display:flex;width:100%;align-items:center;gap:10px;min-height:52px;padding:10px 12px;margin-top:8px;border-radius:10px;border:1px solid var(--line);background:none;color:inherit;font-size:1rem;cursor:pointer;text-align:left}
+.opt:disabled{opacity:.55;cursor:default}
+.opt.c{justify-content:center;color:var(--brand);font-weight:700}
+.opt.p{background:var(--brand);color:var(--on);border-color:var(--brand);justify-content:center;font-weight:700}
+.grp{margin:14px 0 0;font-weight:700;font-size:.9rem;color:var(--mute)}
+.snap{display:block;width:100%;border-radius:10px;margin:10px 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:10px;display:flex;gap:14px;align-items:center;z-index:9;max-width:92%}
+.toast button{background:none;border:0;color:var(--bg);font-weight:700;text-decoration:underline;cursor:pointer;min-height:44px}
+.foot{position:fixed;left:0;right:0;bottom:0;padding:12px 16px;background:var(--bg);border-top:1px solid var(--line)}.foot>div{max-width:560px;margin:0 auto}
+.big{font-size:3rem;text-align:center;margin-top:40px;color:var(--ok)}
+.sum{padding:14px;margin:14px 0}
+.hero{padding:16px;margin-top:12px;border-left:4px solid var(--brand)}.hero h2{margin:2px 0 4px}.hero .btn{margin-top:12px}.big{font-size:1.6rem;font-weight:800;margin:6px 0}
+.authf{display:flex;flex-direction:column;gap:12px}.authf label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.9rem}
+.who{margin-left:auto;margin-right:8px;display:flex;align-items:center;gap:4px;font-size:.85rem;color:var(--mute)}
+.err{color:var(--abs);font-weight:600;min-height:1.2em}.demo{display:flex;gap:8px;flex-wrap:wrap}.demo .opt{margin:0;flex:1}
+</style>
+<style id="product-upgrades">
+:root{color-scheme:light dark}
+html{scroll-behavior:smooth}
+body{transition:background .25s,color .25s}
+main{max-width:1180px;padding:20px 24px 120px;animation:screenIn .22s ease}
+@keyframes screenIn{from{opacity:.55;transform:translateY(5px)}to{opacity:1;transform:none}}
+.card,.row,.btn,.f,.opt{transition:background .18s,border-color .18s,transform .18s,box-shadow .18s}
+button:hover{filter:brightness(1.04)}
+.brandmark{display:inline-flex;align-items:center;gap:9px;font-weight:850;letter-spacing:-.03em}
+.brandmark i{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:var(--brand);color:var(--on);font-style:normal}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.toolbar .f{flex:0 0 auto}
+.metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
+.metric{padding:15px}
+.metric strong{display:block;font-size:1.8rem;line-height:1.2}
+.metric small{color:var(--mute)}
+.panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chart{width:100%;height:auto;max-height:240px}
+.camera-frame{position:relative;overflow:hidden;border-radius:14px;background:#17252b;min-height:280px}
+.camera-frame .snap{margin:0;width:100%;height:320px;object-fit:cover;opacity:.9}
+.rec{position:absolute;top:14px;left:14px;background:#7c1d1d;color:white;border-radius:6px;padding:5px 9px;font:700 12px monospace;letter-spacing:.08em}
+.rec:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff5555;margin-right:7px;animation:blink 1s infinite}
+.scanline{position:absolute;left:0;right:0;height:2px;top:0;background:#55e0bd;box-shadow:0 0 12px #55e0bd;animation:scan 3.4s linear infinite}
+.facebox{position:absolute;left:31%;top:22%;width:19%;height:40%;border:2px solid #f2c661;border-radius:8px;box-shadow:0 0 0 999px #0001}
+.camlabel{position:absolute;left:31%;top:64%;color:#f2c661;font:12px monospace}
+@keyframes blink{50%{opacity:.2}}@keyframes scan{to{top:100%}}
+.live-row{animation:rowIn .35s ease;background:var(--okbg)}
+@keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.audit-item{padding:11px 13px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.audit-item:last-child{border:0}
+.audit-dot{width:9px;height:9px;border-radius:50%;background:var(--brand);margin-top:6px;flex:none}
+.reason{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
+.office-nav{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.office-nav button.active{background:var(--brand);color:var(--on)}
+.theme-toggle{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;min-height:40px;padding:0 12px;cursor:pointer}
+.skeleton{height:14px;border-radius:8px;background:linear-gradient(90deg,var(--line),var(--card),var(--line));background-size:200% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+@media(min-width:900px){
+ .register-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(340px,.9fr);gap:18px;align-items:start}
+ .register-layout .list-column{grid-column:1}
+ .register-layout .detail-column{grid-column:2;grid-row:1}
+ .foot>div{max-width:1180px}
+ .sheet{max-width:680px}
+}
+@media(max-width:700px){main{padding:12px 14px 110px}.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+</style>
+</head><body><main id="app"></main><div id="layer"></div>
+<script>
+const TX={en:{
+ lessons:"Today's lessons",pick:"Open the lesson that is marked Active to see its register.",
+ overview:"Today's attendance – ICT 101 · Group B",registered:"Checked in",camera:"Camera",online:"online",
+ act:"Active",soon:"Not started",sent:"Submitted",
+ whyAct:"Camera active – check-ins arriving",whySoon:"Opens at 11:00 – register not available yet",whySent:"Register sent to the office",
+ hintT:"How it works",h1:"Open the active lesson.",h2:"Fix problems: unrecognised faces, late and absent students.",h3:"Review the changes.",h4:"Submit the register to the office.",gotit:"Got it",
+ lessonsBack:"‹ Lessons",started:"Started",tap:"Tap a student to change their status.",
+ ok:"On time",late:"Late",abs:"Absent",all:"All",
+ unrec:"1 face not recognised",entered:"Entered",resolve:"Resolve",
+ search:"Search student",nores:"No students match. Clear the search or filter.",
+ cam:"Detected by camera",teacher:"Marked {s} by teacher",nocam:"No camera entry",camWas:"camera:",
+ review:"Review and submit",back:"‹ Back to register",check:"Check before you submit",goes:"Once submitted, the register goes to the school office.",
+ changed:"Needs your attention",allOk:"Everyone else is on time.",
+ unres:"1 face is still unresolved.",unresH:"Assign it or leave it out.",confirm:"Submit register",
+ askT:"Submit attendance?",askB:"The register will go to the school office.",askUn:"1 unrecognised face will be left out.",cancel:"Cancel",submit:"Submit",
+ done:"Register submitted",office:"The school office can now see it.",tolist:"Back to today's lessons",restart:"Restart demo",at:"Submitted at",
+ who:"Who entered at",snap:"Camera 2 · Room 214 entrance",choose:"Choose the student this face belongs to.",
+ free:"Not yet detected by camera",taken:"Already detected by camera",noCamRow:"Marked by teacher",takenWhy:"detected at",
+ cur:"Current status:",chooseNew:"Choose a new one.",current:"(current)",undo:"Undo",marked:"marked",matched:"Face matched to",
+ cls:"ICT 101 – Group B",l1:"Web Design – Group C",l2:"Databases – Group A"},
+ru:{
+ lessons:"Уроки на сегодня",pick:"Откройте урок со статусом «Идёт», чтобы увидеть журнал.",
+ overview:"Посещаемость сегодня – ICT 101 · Группа B",registered:"Отметились",camera:"Камера",online:"в сети",
+ act:"Идёт",soon:"Не начался",sent:"Отправлен",
+ whyAct:"Камера работает – студенты заходят",whySoon:"Начнётся в 11:00 – журнал пока недоступен",whySent:"Журнал отправлен в учебную часть",
+ hintT:"Как это работает",h1:"Откройте идущий урок.",h2:"Исправьте проблемы: нераспознанные лица, опоздавших и отсутствующих.",h3:"Проверьте изменения.",h4:"Отправьте журнал в учебную часть.",gotit:"Понятно",
+ lessonsBack:"‹ Уроки",started:"Начало",tap:"Нажмите на студента, чтобы изменить статус.",
+ ok:"Вовремя",late:"Опоздал(а)",abs:"Отсутствует",all:"Все",
+ unrec:"1 лицо не распознано",entered:"Вошёл(а)",resolve:"Указать",
+ search:"Поиск студента",nores:"Никого не найдено. Сбросьте поиск или фильтр.",
+ cam:"Определён камерой",teacher:"Преподаватель отметил: {s}",nocam:"Нет записи с камеры",camWas:"камера:",
+ review:"Проверить и отправить",back:"‹ Назад к журналу",check:"Проверьте перед отправкой",goes:"После отправки журнал уйдёт в учебную часть.",
+ changed:"Требует внимания",allOk:"Остальные пришли вовремя.",
+ unres:"1 лицо всё ещё не определено.",unresH:"Назначьте студента или пропустите.",confirm:"Отправить журнал",
+ askT:"Отправить журнал?",askB:"Журнал уйдёт в учебную часть.",askUn:"1 нераспознанное лицо будет пропущено.",cancel:"Отмена",submit:"Отправить",
+ done:"Журнал отправлен",office:"Теперь его видит учебная часть.",tolist:"К урокам на сегодня",restart:"Начать демо заново",at:"Отправлено в",
+ who:"Кто вошёл в",snap:"Камера 2 · вход в аудиторию 214",choose:"Выберите студента, которому принадлежит это лицо.",
+ free:"Камера ещё не определила",taken:"Уже определены камерой",noCamRow:"Отмечено преподавателем",takenWhy:"определён в",
+ cur:"Текущий статус:",chooseNew:"Выберите новый.",current:"(текущий)",undo:"Отменить",marked:"— новый статус:",matched:"Лицо сопоставлено:",
+ cls:"ICT 101 – Группа B",l1:"Веб-дизайн – Группа C",l2:"Базы данных – Группа A"}};
+let lang=localStorage.getItem("presence_lang")||"en";const t=k=>TX[lang][k];
+function toggleLanguage(){lang=lang==="en"?"ru":"en";localStorage.setItem("presence_lang",lang);document.documentElement.lang=lang;render()}
+Object.assign(TX.en,{signin:"Sign in",signup:"Create account",email:"Email",pass:"Password (6+ characters)",name:"Full name",role:"Role",teacher:"Teacher",office:"School office",logout:"Log out",bad:"Wrong email or password.",exists:"This email is already registered. Sign in instead.",fill:"Fill in every field. The password needs at least 6 characters.",demo:"Demo accounts (tap to fill in)",demoNote:"Demo: accounts and registers are stored in this browser only.",subs:"Submitted registers",nosub:"No registers yet. When a teacher submits one, it appears here.",by:"Teacher",show:"Show students",hide:"Hide students"});
+Object.assign(TX.ru,{signin:"Войти",signup:"Создать аккаунт",email:"Эл. почта",pass:"Пароль (от 6 символов)",name:"Полное имя",role:"Роль",teacher:"Преподаватель",office:"Учебная часть",logout:"Выйти",bad:"Неверная почта или пароль.",exists:"Эта почта уже зарегистрирована. Войдите.",fill:"Заполните все поля. Пароль — минимум 6 символов.",demo:"Демо-аккаунты (нажмите, чтобы подставить)",demoNote:"Демо: аккаунты и журналы хранятся только в этом браузере.",subs:"Отправленные журналы",nosub:"Пока нет журналов. Когда преподаватель отправит журнал, он появится здесь.",by:"Преподаватель",show:"Показать студентов",hide:"Скрыть студентов"});
+Object.assign(TX.en,{now:"Now",nextL:"Next lesson",startsIn:"Starts in",endsIn:"ends in",openReg:"Open register",finished:"Finished",later:"Later",noToday:"No lessons today.",noLess:"No lessons in your schedule.",todayL:"Today",days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],dU:"d",hU:"h",mU:"min"});
+Object.assign(TX.ru,{now:"Сейчас",nextL:"Следующий урок",startsIn:"Начнётся через",endsIn:"закончится через",openReg:"Открыть журнал",finished:"Завершён",later:"Позже",noToday:"Сегодня уроков нет.",noLess:"В вашем расписании нет уроков.",todayL:"Сегодня",days:["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"],dU:"д",hU:"ч",mU:"мин"});
+const START="09:00";
+/* cam = time detected by camera (null if none). edited = teacher changed status */
+const base=[["Aigerim S.","08:56","ok"],["Bekzat T.","08:58","ok"],["Dana K.","09:07","late"],["Eldar M.","08:59","ok"],["Madina R.","09:12","late"],["Nurlan A.",  "08:57","ok"],["Sabina Y.",null,"abs"],["Timur Z.",null,"abs"]];
+let S;function reset(){S={user:(S&&S.user)||null,authMode:"in",open:null,screen:"lessons",sheet:null,toast:null,confirm:false,hint:true,q:"",f:"all",sentAt:null,unrec:{time:"09:05"},
+ students:base.map((s,i)=>({id:i,name:s[0],cam:s[1],status:s[2],edited:false}))}}reset();
+const $=id=>document.getElementById(id);
+const ini=n=>n.split(" ").map(w=>w[0]).join("");
+const cnt=k=>S.students.filter(s=>s.status===k).length,total=()=>S.students.length,registered=()=>S.students.filter(s=>s.status!=="abs").length;
+function go(s){S.screen=s;S.sheet=null;S.confirm=false;render();scrollTo(0,0)}
+function toast(msg,undo){S.toast={msg,undo};render();clearTimeout(toast.t);toast.t=setTimeout(()=>{S.toast=null;render()},5000)}
+function setStatus(i,st){
+ const p=S.students[i],old={...p};
+ const reason=prompt(lang==="ru"?"Укажите причину изменения статуса:":"Reason for changing attendance status:");
+ if(reason===null)return;
+ if(!reason.trim()){alert(lang==="ru"?"Введите причину правки.":"Please enter a reason.");return}
+ p.status=st;p.edited=true;S.sheet=null;
+ addAudit({action:"Изменён статус",student:p.name,from:old.status,to:st,reason:reason.trim(),by:S.user?.name||"Teacher",at:new Date().toLocaleString()});
+ toast(p.name+" "+t("marked")+" "+t(st).toLowerCase()+".",()=>{S.students[i]=old;S.toast=null;render()})
+}
+function assign(i){const p=S.students[i],old={...p};p.cam=S.unrec.time;p.status=p.cam>(S.cur?S.cur.start:START)?"late":"ok";p.edited=false;S.unrec=null;S.sheet=null;
+ toast(t("matched")+" "+p.name+" ("+t(p.status).toLowerCase()+", "+p.cam+").",()=>{S.students[i]=old;S.unrec={time:"09:05"};S.toast=null;render()})}
+function submitReg(){const d=new Date();S.sentAt=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+ try{const L=JSON.parse(localStorage.getItem("pc_sub")||"[]");L.unshift({by:S.user.name,date:d.toLocaleDateString(),at:S.sentAt,cls:clsName()+" · "+S.cur.start+"–"+S.cur.end,unrec:!!S.unrec,students:S.students.map(x=>({name:x.name,status:x.status,cam:x.cam,edited:x.edited}))});localStorage.setItem("pc_sub",JSON.stringify(L.slice(0,50)))}catch(e){}
+ addAudit({action:"Журнал отправлен",student:clsName(),reason:"Отправка журнала в учебную часть",by:S.user?.name||"Teacher",at:new Date().toLocaleString()});
+ go("done")}
+const tag=st=>`<span class="tag ${st}">${t(st)}</span>`;
+const chips=()=>`<div class="chips"><div class="chip ok">${cnt("ok")}<small>${t("ok")}</small></div><div class="chip late">${cnt("late")}<small>${t("late")}</small></div><div class="chip abs">${cnt("abs")}<small>${t("abs")}</small></div></div>`;
+function src(s){ /* separates camera data from teacher action; never invents a time */
+ if(s.edited)return `<span class="src t">${t("teacher").replace("{s}",t(s.status).toLowerCase())}</span>`+(s.cam?` <span class="src">· ${t("camWas")} ${s.cam}</span>`:"");
+ return s.cam?`<span class="src">📷 ${t("cam")} ${s.cam}</span>`:`<span class="src">${t("nocam")}</span>`}
+function listHTML(){
+ const q=S.q.trim().toLowerCase();
+ const r=S.students.filter(s=>(S.f==="all"||s.status===S.f)&&s.name.toLowerCase().includes(q));
+ return r.length?r.map(s=>`<button class="row" onclick="S.sheet=${s.id};render()"><span class="av">${ini(s.name)}</span><span class="grow"><b>${s.name}</b><br>${src(s)}</span>${tag(s.status)}</button>`).join(""):`<p class="mute empty">${t("nores")}</p>`}
+function setQ(v){S.q=v;$("list").innerHTML=listHTML()}
+function setF(f){S.f=f;render()}
+function snapSVG(time){return `<svg class="snap" viewBox="0 0 320 150" role="img" aria-label="${t("snap")} ${time}"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b4a50"/><stop offset="1" stop-color="#1d272b"/></linearGradient></defs>
+<rect width="320" height="150" fill="url(#g)"/><rect x="200" y="14" width="80" height="136" fill="#66787e" opacity=".55"/><rect x="0" y="128" width="320" height="22" fill="#141c1f"/>
+<circle cx="130" cy="58" r="20" fill="#b9977c"/><path d="M92 128c0-30 16-46 38-46s38 16 38 46z" fill="#2f5d6b"/><path d="M110 50c2-16 32-20 40 0-10-6-28-8-40 0z" fill="#2a2320"/>
+<rect x="104" y="34" width="52" height="58" rx="4" fill="none" stroke="#f2c661" stroke-width="2" stroke-dasharray="6 4"/><text x="121" y="30" fill="#f2c661" font-size="11" font-family="monospace">? 0.41</text>
+<text x="8" y="16" fill="#e6eff2" font-size="10" font-family="monospace">CAM 2 · 214</text><text x="312" y="16" fill="#e6eff2" font-size="10" font-family="monospace" text-anchor="end">${time}:12</text><circle cx="298" cy="26" r="3" fill="#ff5a5a"/></svg>`}
+function lessonCard(name,meta,st,why,click){
+ const inner=`<div class="lrow"><h2>${name}</h2><span class="st ${st}">${t(st)}</span></div><p class="mute">${meta} · ${why}</p>`;
+ return click?`<button class="card lesson" onclick="${click}">${inner}</button>`:`<div class="card lesson off" aria-disabled="true">${inner}</div>`}
+function renderMain(){
+ const a=S.screen,sent=!!S.sentAt;
+ let h=`<div class="top"><span>${a==="register"?`<button class="back" onclick="go('lessons')">${t("lessonsBack")}</button>`:a==="review"?`<button class="back" onclick="go('register')">${t("back")}</button>`:""}</span>${userBar()}<button class="lang" onclick="toggleLanguage()" aria-label="Language">${lang==="en"?"RU":"EN"}</button></div>`;
+ if(a==="lessons"){h+=dash()}
+ if(a==="register")h+=`<h1>${clsName()}</h1><p class="mute">${t("started")} ${S.cur?S.cur.start:START}. ${t("tap")}</p>${chips()}`+
+  (S.unrec?`<div class="alert" role="alert"><span><b>${t("unrec")}</b><br>${t("entered")} ${S.unrec.time}</span><button onclick="S.sheet='unrec';render()">${t("resolve")}</button></div>`:"")+
+  `<div class="tools"><input class="search" type="search" placeholder="${t("search")}" aria-label="${t("search")}" value="${S.q.replace(/"/g,"")}" oninput="setQ(this.value)"><div class="filters">`+
+  [["all",t("all")+" "+total()],["late",t("late")+" "+cnt("late")],["abs",t("abs")+" "+cnt("abs")]].map(f=>`<button class="f" aria-pressed="${S.f===f[0]}" onclick="setF('${f[0]}')">${f[1]}</button>`).join("")+
+  `</div></div><div class="card" id="list">${listHTML()}</div><div class="foot"><div><button class="btn" onclick="go('review')">${t("review")}</button></div></div>`;
+ if(a==="review"){const ch=S.students.filter(s=>s.status!=="ok");
+  h+=`<h1>${t("check")}</h1><p class="mute">${t("goes")}</p>${chips()}`+
+  (S.unrec?`<div class="alert" role="alert"><span><b>${t("unres")}</b><br>${t("unresH")}</span><button onclick="S.screen='register';S.sheet='unrec';render()">${t("resolve")}</button></div>`:"")+
+  `<p class="grp" style="margin:4px 0 8px">${t("changed")}</p><div class="card">`+ch.map(s=>`<div class="row" style="cursor:default"><span class="av">${ini(s.name)}</span><span class="grow"><b>${s.name}</b><br>${src(s)}</span>${tag(s.status)}</div>`).join("")+`</div><p class="mute" style="margin-top:8px">${t("allOk")}</p>
+  <div class="foot"><div><button class="btn" onclick="S.confirm=true;render()">${t("confirm")}</button></div></div>`}
+ if(a==="done")h+=`<div class="big" aria-hidden="true">✓</div><h1 style="text-align:center">${t("done")}</h1><div class="card sum"><h2>${clsName()}</h2><p class="mute">${t("at")} ${S.sentAt}</p>${chips()}<p class="mute">${t("office")}</p></div>
+  <button class="btn" onclick="go('lessons')">${t("tolist")}</button>`;
+ $("app").innerHTML=h;
+ let l="";
+ if(S.confirm)l=`<div class="sheetbg" onclick="if(event.target===this){S.confirm=false;render()}"><div class="sheet" role="dialog" aria-modal="true"><h2>${t("askT")}</h2><p class="mute">${t("askB")}</p>${chips()}${S.unrec?`<p class="mute">${t("askUn")}</p>`:""}<button class="opt p" onclick="submitReg()">${t("submit")}</button><button class="opt c" onclick="S.confirm=false;render()">${t("cancel")}</button></div></div>`;
+ else if(S.sheet==="unrec"&&S.unrec){
+  const free=S.students.filter(s=>!s.cam),taken=S.students.filter(s=>s.cam);
+  l=`<div class="sheetbg" onclick="if(event.target===this){S.sheet=null;render()}"><div class="sheet" role="dialog" aria-modal="true"><h2>${t("who")} ${S.unrec.time}?</h2>${snapSVG(S.unrec.time)}<p class="mute">${t("choose")}</p>
+  <p class="grp">${t("free")}</p>`+free.map(s=>`<button class="opt" onclick="assign(${s.id})"><span class="av">${ini(s.name)}</span><span class="grow">${s.name}<br><span class="src">${s.edited?t("noCamRow")+": "+t(s.status).toLowerCase():t("nocam")}</span></span>${tag(s.status)}</button>`).join("")+
+  `<p class="grp">${t("taken")}</p>`+taken.map(s=>`<button class="opt" disabled><span class="av">${ini(s.name)}</span><span class="grow">${s.name}<br><span class="src">${t("takenWhy")} ${s.cam}</span></span></button>`).join("")+
+  `<button class="opt c" onclick="S.sheet=null;render()">${t("cancel")}</button></div></div>`}
+ else if(typeof S.sheet==="number"){const s=S.students[S.sheet];
+  l=`<div class="sheetbg" onclick="if(event.target===this){S.sheet=null;render()}"><div class="sheet" role="dialog" aria-modal="true"><h2>${s.name}</h2><p class="mute">${t("cur")} ${t(s.status).toLowerCase()}. ${t("chooseNew")}</p><p style="margin-top:4px">${src(s)}</p>`+
+  ["ok","late","abs"].map(k=>`<button class="opt" onclick="setStatus(${S.sheet},'${k}')" ${k===s.status?'style="border:2px solid var(--brand)"':""}>${tag(k)} ${k===s.status?t("current"):""}</button>`).join("")+`<button class="opt c" onclick="S.sheet=null;render()">${t("cancel")}</button></div></div>`}
+ if(S.toast)l+=`<div class="toast" role="status"><span>${S.toast.msg}</span><button onclick="S.toast.undo()">${t("undo")}</button></div>`;
+ $("layer").innerHTML=l;
+}
+document.documentElement.lang=lang;
+
+const SCHED=[
+ {id:"ict-wed-1",t:"akbota@demo.kz",day:3,start:"12:00",end:"12:50",sub:{en:"ICT",ru:"ИКТ"},group:"CS-2615"},
+ {id:"ict-wed-2",t:"akbota@demo.kz",day:3,start:"13:00",end:"13:50",sub:{en:"ICT",ru:"ИКТ"},group:"CS-2615"},
+ {id:"ip-tue-1",t:"saltanat@demo.kz",day:2,start:"10:00",end:"10:50",sub:{en:"Introduction to Programming",ru:"Введение в программирование"},group:"CS-2615"},
+ {id:"ip-tue-2",t:"saltanat@demo.kz",day:2,start:"11:00",end:"11:50",sub:{en:"Introduction to Programming",ru:"Введение в программирование"},group:"CS-2615"},
+ {id:"ip-fri-1",t:"saltanat@demo.kz",day:5,start:"08:00",end:"08:50",sub:{en:"Introduction to Programming",ru:"Введение в программирование"},group:"CS-2615"}];
+const mins=h=>{const a=h.split(":");return+a[0]*60+ +a[1]};
+const dk=()=>/now=/.test(location.search)?"test":new Date().toLocaleDateString("en-CA");
+const clsName=()=>S.cur?S.cur.sub[lang]+" – "+S.cur.group:TX[lang].cls;
+const keyOf=()=>"pc_data_"+S.user.email+"_"+S.cur.id+"_"+dk();
+function getNow(){const q=/now=(\w{3})-(\d+):(\d+)/i.exec(location.search);if(q)return{d:["sun","mon","tue","wed","thu","fri","sat"].indexOf(q[1].toLowerCase()),s:(+q[2]*60+ +q[3])*60};const n=new Date();return{d:n.getDay(),s:n.getHours()*3600+n.getMinutes()*60+n.getSeconds()}}
+const fmt=x=>{const m=Math.max(1,Math.ceil(x/60)),d=Math.floor(m/1440),h=Math.floor(m%1440/60);return[d?d+" "+t("dU"):"",d||h?h+" "+t("hU"):"",m%60+" "+t("mU")].filter(Boolean).join(" ")};
+const submitted=l=>{try{return!!JSON.parse(localStorage.getItem("pc_data_"+S.user.email+"_"+l.id+"_"+dk())||"{}").sentAt}catch(e){return false}};
+function openL(id){const l=SCHED.find(x=>x.id===id);reset();S.cur=l;S.hint=false;const sh=x=>{if(!x||!/^\d+:\d+$/.test(x))return x;const m=((mins(x)+mins(l.start)-540)%1440+1440)%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")};S.students.forEach(x=>{x.cam=sh(x.cam)});if(S.unrec&&typeof S.unrec==="object"&&S.unrec.time)S.unrec.time=sh(S.unrec.time);else if(typeof S.unrec==="string")S.unrec=sh(S.unrec);try{const d=JSON.parse(localStorage.getItem(keyOf())||"null");if(d&&d.students){S.students=d.students;S.unrec=d.unrec;S.sentAt=d.sentAt}}catch(e){}go("register")}
+function resetDemo(){try{Object.keys(localStorage).filter(k=>/^pc_(data_|sub)/.test(k)).forEach(k=>localStorage.removeItem(k))}catch(e){}reset();render()}
+function dash(){const n=getNow(),by=(a,b)=>mins(a.start)-mins(b.start),mine=SCHED.filter(l=>l.t===S.user.email),day=mine.filter(l=>l.day===n.d).sort(by),
+ st=l=>n.s>=mins(l.end)*60?"done":n.s>=mins(l.start)*60?"act":"soon",act=day.find(l=>st(l)==="act");let nx=day.find(l=>st(l)==="soon"),when=nx&&mins(nx.start)*60-n.s,dd=0;
+ if(!act&&!nx)for(let k=1;k<=7&&!nx;k++){const c=mine.filter(l=>l.day===(n.d+k)%7).sort(by)[0];if(c){nx=c;dd=(n.d+k)%7;when=k*86400-n.s+mins(c.start)*60}}
+ const hh=String(Math.floor(n.s/3600)).padStart(2,"0")+":"+String(Math.floor(n.s%3600/60)).padStart(2,"0"),D=TX[lang].days;
+ let h=`<h1>${D[n.d]}, ${hh}</h1>`;
+ if(act)h+=`<div class="card hero"><p class="mute">${t("now")}</p><h2>${act.sub[lang]} · ${act.group}</h2><p>${act.start}–${act.end} · ${t("endsIn")} ${fmt(mins(act.end)*60-n.s)}</p><button class="btn" onclick="openL('${act.id}')">${t("openReg")}</button></div>`;
+ else if(nx)h+=`<div class="card hero"><p class="mute">${t("nextL")}</p><h2>${nx.sub[lang]} · ${nx.group}</h2><p>${dd?D[dd]+" ":""}${nx.start}–${nx.end}</p><p class="big">${t("startsIn")} ${fmt(when)}</p></div>`;
+ else h+=`<p class="mute">${t("noLess")}</p>`;
+ h+=`<p class="grp" style="margin-top:18px">${t("todayL")}</p>`;
+ h+=day.length?`<div class="card">`+day.map(l=>{const k=st(l),sb=k==="done"&&submitted(l);return`<div class="row" style="cursor:default"><span class="grow"><b>${l.start}–${l.end}</b><br>${l.sub[lang]} · ${l.group}</span><span class="st ${k==="act"?"act":sb?"sent":"soon"}">${k==="act"?t("act"):sb?t("sent"):k==="done"?t("finished"):t("later")}</span></div>`}).join("")+`</div>`:`<p class="mute">${t("noToday")}</p>`;
+ return h}
+setInterval(()=>{if(S.user&&S.user.role==="teacher"&&S.screen==="lessons"&&!document.hidden)render()},15000);
+
+const esc=x=>String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const getUsers=()=>{try{return JSON.parse(localStorage.getItem("pc_users")||"[]")}catch(e){return[]}};
+const setUsers=u=>localStorage.setItem("pc_users",JSON.stringify(u));
+async function hash(x){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("pc:"+x));return[...new Uint8Array(b)].map(n=>n.toString(16).padStart(2,"0")).join("")}catch(e){return btoa(unescape(encodeURIComponent("pc:"+x)))}}
+function save(){if(S.user&&S.user.role==="teacher"&&S.cur)try{localStorage.setItem(keyOf(),JSON.stringify({students:S.students,unrec:S.unrec,sentAt:S.sentAt}))}catch(e){}}
+function login(u){reset();S.user=u;S.screen=u.role==="office"?"office":"lessons";try{localStorage.setItem("pc_session",u.email)}catch(e){}render()}
+function logout(){save();try{localStorage.removeItem("pc_session")}catch(e){}reset();S.user=null;render()}
+const userBar=()=>S.user?`<span class="who">${esc(S.user.name)}<button class="back" onclick="logout()">${t("logout")}</button></span>`:"";
+function fillDemo(e){$("ae").value=e;$("ap").value="demo123"}
+async function submitAuth(){const em=$("ae").value.trim().toLowerCase(),pw=$("ap").value,up=S.authMode==="up",err=m=>{$("aerr").textContent=m},nm=up?$("an").value.trim():"";
+ if(!em||pw.length<6||(up&&!nm))return err(t("fill"));
+ const h=await hash(pw),us=getUsers();
+ if(up){if(us.some(u=>u.email===em))return err(t("exists"));const u={email:em,name:nm,role:$("ar").value,h};us.push(u);setUsers(us);login(u)}
+ else{const u=us.find(x=>x.email===em&&x.h===h);if(!u)return err(t("bad"));login(u)}}
+function renderAuth(){const m=S.authMode,up=m==="up";$("layer").innerHTML="";
+ $("app").innerHTML=`<div class="top"><span></span><button class="lang" onclick="toggleLanguage()" aria-label="Language">${lang==="en"?"RU":"EN"}</button></div><h1>Presence Checker</h1>
+ <div class="filters" style="margin:12px 0"><button class="f" aria-pressed="${!up}" onclick="S.authMode='in';render()">${t("signin")}</button><button class="f" aria-pressed="${up}" onclick="S.authMode='up';render()">${t("signup")}</button></div>
+ <div class="card" style="padding:14px"><div class="authf">${up?`<label>${t("name")}<input id="an" class="search" autocomplete="name"></label>`:""}
+ <label>${t("email")}<input id="ae" class="search" type="email" autocomplete="username"></label>
+ <label>${t("pass")}<input id="ap" class="search" type="password" autocomplete="${up?"new-password":"current-password"}" onkeydown="if(event.key==='Enter')submitAuth()"></label>
+ ${up?`<label>${t("role")}<select id="ar" class="search"><option value="teacher">${t("teacher")}</option><option value="office">${t("office")}</option></select></label>`:""}
+ <p id="aerr" class="err" role="alert"></p><button class="btn" onclick="submitAuth()">${up?t("signup"):t("signin")}</button></div></div>
+ `}
+function renderOffice(){const L=(()=>{try{return JSON.parse(localStorage.getItem("pc_sub")||"[]")}catch(e){return[]}})(),c=(a,k)=>a.filter(x=>x.status===k).length;$("layer").innerHTML="";
+ $("app").innerHTML=`<div class="top"><span></span>${userBar()}<button class="lang" onclick="toggleLanguage()" aria-label="Language">${lang==="en"?"RU":"EN"}</button></div><h1>${t("subs")}</h1>`+
+ (L.length?L.map((r,i)=>`<div class="card lesson"><div class="lrow"><h2>${esc(r.cls)}</h2><span class="st sent">${esc(r.date)} ${esc(r.at)}</span></div><p class="mute">${t("by")}: ${esc(r.by)}</p>
+ <div class="chips"><div class="chip ok">${c(r.students,"ok")}<small>${t("ok")}</small></div><div class="chip late">${c(r.students,"late")}<small>${t("late")}</small></div><div class="chip abs">${c(r.students,"abs")}<small>${t("abs")}</small></div></div>${r.unrec?`<p class="mute">${t("askUn")}</p>`:""}
+ <button class="f" aria-expanded="${S.open===i}" onclick="S.open=S.open===${i}?null:${i};render()">${S.open===i?t("hide"):t("show")}</button>
+ ${S.open===i?`<div style="margin-top:8px">`+r.students.map(x=>`<div class="row" style="cursor:default;min-height:48px;padding:8px 0"><span class="av">${ini(x.name)}</span><span class="grow"><b>${esc(x.name)}</b><br>${src(x)}</span>${tag(x.status)}</div>`).join("")+`</div>`:""}</div>`).join(""):`<p class="mute empty">${t("nosub")}</p>`)}
+function render(){if(!S.user)return renderAuth();save();if(S.user.role==="office")return renderOffice();renderMain()}
+async function seed(){const h=await hash("demo123"),us=getUsers();let ch=0;[["akbota@demo.kz","Tursunkulova Akbota","teacher"],["saltanat@demo.kz","Saltanat Algys","teacher"],["office@demo.kz","Учебная часть / Office","office"]].forEach(a=>{if(!us.some(u=>u.email===a[0])){us.push({email:a[0],name:a[1],role:a[2],h});ch=1}});if(ch)setUsers(us)}
+
+
+// --- Demo simulation, audit trail, office analytics and theme ---
+let liveTimer=null,liveIndex=0;
+const EXTRA=[
+ ["Aigerim S.","09:01","ok"],["Bekzat T.","09:03","ok"],["Dana K.","09:04","late"],
+ ["Eldar M.","09:05","ok"],["Madina R.","09:07","late"],["Nurlan A.","09:08","ok"],
+ ["Sabina Y.","09:10","ok"],["Timur Z.","09:12","ok"]
+];
+function startLive(){
+ if(liveTimer)return;
+ S.liveRunning=true;liveIndex=0;S.students=[];
+ const tick=()=>{
+  if(liveIndex>=EXTRA.length){stopLive();return}
+  const [name,cam,status]=EXTRA[liveIndex++];
+  S.students.push({id:S.students.length,name,cam,status,edited:false});
+  S.lastLive=S.students.length-1;render();
+ };
+ tick();liveTimer=setInterval(tick,2500);render();
+}
+function stopLive(){if(liveTimer){clearInterval(liveTimer);liveTimer=null}if(S)S.liveRunning=false; if(S)render()}
+function addAudit(item){
+ try{const a=JSON.parse(localStorage.getItem("pc_audit")||"[]");a.unshift(item);localStorage.setItem("pc_audit",JSON.stringify(a.slice(0,300)))}catch(e){}
+}
+const getAudit=()=>{try{return JSON.parse(localStorage.getItem("pc_audit")||"[]")}catch(e){return[]}};
+function toggleTheme(){
+ const dark=document.documentElement.dataset.theme!=="dark";
+ document.documentElement.dataset.theme=dark?"dark":"light";
+ document.documentElement.style.colorScheme=dark?"dark":"light";
+ localStorage.setItem("pc_theme",dark?"dark":"light");
+}
+(function applyTheme(){const v=localStorage.getItem("pc_theme");if(v){document.documentElement.dataset.theme=v;document.documentElement.style.colorScheme=v}})();
+const oldRenderMain=renderMain;
+renderMain=function(){
+ oldRenderMain();
+ const top=document.querySelector(".top");
+ if(top&&!top.querySelector(".theme-toggle")){
+  const b=document.createElement("button");b.className="theme-toggle";b.textContent=document.documentElement.dataset.theme==="dark"?"☀":"☾";b.title="Тема";b.onclick=toggleTheme;top.appendChild(b);
+ }
+ if(S.screen==="register"&&S.lastLive!=null){
+  const rows=document.querySelectorAll("#list .row");if(rows.length)rows[rows.length-1].classList.add("live-row");S.lastLive=null;
+ }
+};
+const originalRenderOffice=renderOffice;
+renderOffice=function(){
+ const L=(()=>{try{return JSON.parse(localStorage.getItem("pc_sub")||"[]")}catch(e){return[]}})();
+ const audit=getAudit();
+ const count=(arr,k)=>arr.reduce((n,x)=>n+(x.status===k),0);
+ const pct=L.length?Math.round(L.reduce((n,r)=>n+r.students.filter(x=>x.status==="ok").length,0)/Math.max(1,L.reduce((n,r)=>n+r.students.length,0))*100):0;
+ const groups=[...new Set(L.map(r=>r.cls.split(" · ")[0]))];
+ const svgBars=`<svg class="chart" viewBox="0 0 440 220" role="img" aria-label="Посещаемость по журналам"><line x1="35" y1="185" x2="425" y2="185" stroke="currentColor" opacity=".3"/>${L.slice(0,6).map((r,i)=>{const v=r.students.length?count(r.students,"ok")/r.students.length:0;return `<rect x="${48+i*63}" y="${180-v*140}" width="34" height="${v*140}" rx="5" fill="#16845b"/><text x="${65+i*63}" y="202" font-size="10" text-anchor="middle" fill="currentColor">${i+1}</text>`}).join("")}<text x="35" y="16" fill="currentColor" font-size="11">Доля присутствующих</text></svg>`;
+ const ring=`<svg viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="Общая посещаемость"><circle cx="80" cy="80" r="58" fill="none" stroke="var(--line)" stroke-width="17"/><circle cx="80" cy="80" r="58" fill="none" stroke="#16845b" stroke-width="17" stroke-dasharray="${pct*3.644} 364.4" transform="rotate(-90 80 80)" stroke-linecap="round"/><text x="80" y="86" text-anchor="middle" font-size="27" font-weight="800" fill="currentColor">${pct}%</text></svg>`;
+ $("layer").innerHTML="";
+ $("app").innerHTML=`<div class="top"><span class="brandmark"><i>✓</i> Presence Checker</span>${userBar()}<button class="lang" onclick="toggleLanguage()">${lang==="en"?"RU":"EN"}</button><button class="theme-toggle" onclick="toggleTheme()">◐</button></div>
+ <h1>Дашборд учебной части</h1><p class="mute">Сводная аналитика отправленных журналов</p>
+ <div class="office-nav"><button class="f ${S.officeTab!=="audit"?"active":""}" onclick="S.officeTab='stats';render()">Аналитика</button><button class="f ${S.officeTab==="audit"?"active":""}" onclick="S.officeTab='audit';render()">Журнал аудита (${audit.length})</button></div>
+ ${S.officeTab==="audit"?`<div class="card">${audit.length?audit.map(x=>`<div class="audit-item"><span class="audit-dot"></span><div><b>${esc(x.action)} · ${esc(x.student||"")}</b><p class="mute">${esc(x.by||"")} · ${esc(x.at||"")}</p><p>${esc(x.reason||"")}</p></div></div>`).join(""):`<p class="empty mute">Записей аудита пока нет.</p>`}</div>`:
+ `<div class="metric-grid"><div class="card metric"><strong>${L.length}</strong><small>Отправлено журналов</small></div><div class="card metric"><strong>${pct}%</strong><small>Общая посещаемость</small></div><div class="card metric"><strong>${L.reduce((n,r)=>n+count(r.students,"ok"),0)}</strong><small>Вовремя</small></div><div class="card metric"><strong>${L.reduce((n,r)=>n+count(r.students,"abs"),0)}</strong><small>Отсутствуют</small></div></div>
+ <div class="panel-grid"><div class="card lesson"><h2>Общая посещаемость</h2>${ring}</div><div class="card lesson"><h2>По отправленным группам</h2>${svgBars}</div></div>
+ <div class="toolbar"><select class="search" id="officeGroup" style="max-width:260px" onchange="filterOffice()"><option value="">Все группы</option>${groups.map(g=>`<option>${esc(g)}</option>`).join("")}</select><input class="search" style="max-width:220px" type="date" id="officeDate" onchange="filterOffice()"><button class="f" onclick="downloadCSV()">Скачать CSV</button></div>
+ <div class="card" id="officeRows">${L.length?L.map((r,i)=>`<div class="lesson"><div class="lrow"><b>${esc(r.cls)}</b><span class="st sent">${esc(r.date)} ${esc(r.at)}</span></div><p class="mute">Преподаватель: ${esc(r.by)}</p><div class="chips"><div class="chip ok">${count(r.students,"ok")}<small>Вовремя</small></div><div class="chip late">${count(r.students,"late")}<small>Опоздали</small></div><div class="chip abs">${count(r.students,"abs")}<small>Отсутствуют</small></div></div></div>`).join(""):`<p class="empty mute">Журналов пока нет — отправленные данные появятся здесь.</p>`}</div>`}`;
+};
+function filterOffice(){
+ const group=document.getElementById("officeGroup")?.value||"",date=document.getElementById("officeDate")?.value||"";
+ document.querySelectorAll("#officeRows .lesson").forEach(el=>{const txt=el.innerText;el.style.display=(!group||txt.includes(group))&&(!date||txt.includes(new Date(date+"T00:00:00").toLocaleDateString()))?"":"none"});
+}
+function downloadCSV(){
+ const L=(()=>{try{return JSON.parse(localStorage.getItem("pc_sub")||"[]")}catch(e){return[]}})();
+ const rows=[["Группа","Дата","Время","Преподаватель","Студент","Статус"]];
+ L.forEach(r=>r.students.forEach(x=>rows.push([r.cls,r.date,r.at,r.by,x.name,x.status])));
+ const csv="\uFEFF"+rows.map(r=>r.map(x=>'"'+String(x??"").replace(/"/g,'""')+'"').join(";")).join("\r\n");
+ const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download="presence-report.csv";a.click();URL.revokeObjectURL(url);
+}
+
+(async()=>{try{if(/logout/.test(location.search))localStorage.removeItem("pc_session");await seed();const e=localStorage.getItem("pc_session"),u=getUsers().find(x=>x.email===e);if(u)return login(u)}catch(e){}render()})();
+</script></body></html>
